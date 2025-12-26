@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Work, UserRole, WorkStatus, Message, Folder, ChatThread, FolderAccess, FolderEditMode, GlobalTheme } from './types';
-import { INITIAL_WORKS } from './constants';
 
 interface AppContextType {
   currentUser: User | null;
@@ -20,7 +19,7 @@ interface AppContextType {
   updateWorkStatus: (workId: string, status: WorkStatus) => void;
   reportWork: (workId: string) => void;
   blockUser: (userId: string) => void;
-  toggleFollow: (userId: string) => void; // New functional follow
+  toggleFollow: (userId: string) => void;
   sendMessage: (receiverId: string, content: string, isThread?: boolean) => void;
   createThread: (name: string, isPublic: boolean, workId?: string) => void;
   joinThread: (threadId: string) => void;
@@ -31,14 +30,15 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Usamos nuevas claves para asegurar que no queden rastros de bots antiguos en el navegador del usuario
-const KEY_USERS = 'komorebi_v2_users';
-const KEY_WORKS = 'komorebi_v2_works';
-const KEY_MESSAGES = 'komorebi_v2_messages';
-const KEY_FOLDERS = 'komorebi_v2_folders';
-const KEY_THREADS = 'komorebi_v2_threads';
-const KEY_THEME = 'komorebi_v2_local_theme';
-const KEY_CURRENT = 'komorebi_v2_current_user';
+// Nuevas claves para limpiar cualquier dato residual anterior
+const KEY_PREFIX = 'komorebi_final_v1';
+const KEY_USERS = `${KEY_PREFIX}_users`;
+const KEY_WORKS = `${KEY_PREFIX}_works`;
+const KEY_MESSAGES = `${KEY_PREFIX}_messages`;
+const KEY_FOLDERS = `${KEY_PREFIX}_folders`;
+const KEY_THREADS = `${KEY_PREFIX}_threads`;
+const KEY_THEME = `${KEY_PREFIX}_theme`;
+const KEY_CURRENT = `${KEY_PREFIX}_current`;
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [allUsers, setAllUsers] = useState<User[]>(() => {
@@ -120,7 +120,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       reportCount: 0,
       theme: { backgroundColor: '#ffffff', headerColor: '#1a237e' }
     };
-
     setAllUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);
   };
@@ -154,10 +153,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleFollow = (targetId: string) => {
     if (!currentUser || currentUser.id === targetId) return;
-
     const isFollowing = currentUser.followingIds.includes(targetId);
     
-    // Update current user following list
     const updatedFollowing = isFollowing 
       ? currentUser.followingIds.filter(id => id !== targetId)
       : [...currentUser.followingIds, targetId];
@@ -165,7 +162,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updatedCurrentUser = { ...currentUser, followingIds: updatedFollowing };
     setCurrentUser(updatedCurrentUser);
 
-    // Update target user followers list and current user in allUsers
     setAllUsers(prev => prev.map(u => {
       if (u.id === currentUser.id) return updatedCurrentUser;
       if (u.id === targetId) {
