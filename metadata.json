@@ -1,0 +1,8 @@
+{
+  "name": "Copy of KOMOREBI APK",
+  "description": "An archive for original creations: audiovisual, auditory, visual, and essays. A niche space for intentional art and conscious dialogue.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
