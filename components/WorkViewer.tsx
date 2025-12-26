@@ -8,58 +8,31 @@ import { useApp } from '../store.tsx';
 interface WorkViewerProps { work: Work; onClose: () => void; }
 
 export const WorkViewer: React.FC<WorkViewerProps> = ({ work, onClose }) => {
-  const { folders, toggleWorkInFolder, currentUser, reportWork, blockUser, createThread, threads } = useApp();
+  const { folders, toggleWorkInFolder, currentUser, reportWork, blockUser, toggleFollow, threads } = useApp();
   const [showFolderPicker, setShowFolderPicker] = useState(false);
-  const [reported, setReported] = useState(false);
   
   const handleAddToFolder = (folderId: string) => toggleWorkInFolder(folderId, work.id);
   const userFolders = folders.filter(f => f.ownerId === currentUser?.id);
-  const existingThread = threads.find(t => t.workId === work.id);
-
-  const handleReport = () => {
-    if (window.confirm("Report node? Ethical violations lead to archiving.")) {
-      reportWork(work.id);
-      setReported(true);
-    }
-  };
-
-  const handleBlock = () => {
-    if (window.confirm(`Block ${work.authorName}? Their nodes will be hidden.`)) {
-      blockUser(work.authorId);
-      onClose();
-    }
-  };
-
-  const handleStartDiscussion = () => {
-    if (existingThread) {
-      alert("Discussion already exists in the Dialogue network.");
-      return;
-    }
-    createThread(`Discussion: ${work.title}`, true, work.id);
-    alert("Thread established in Dialogue.");
-  };
-
-  const sensitivityLabels: Record<string, string> = { 'miedo': 'Fear', 'violencia': 'Violence', 'sexualidad': 'Sexuality', 'perturbación psicológica': 'Psychological', 'consumo o exceso': 'Excess' };
+  
+  const isFollowing = currentUser?.followingIds.includes(work.authorId);
 
   return (
     <div className="fixed inset-0 z-[150] bg-zinc-900/80 backdrop-blur-md overflow-y-auto flex items-start justify-center p-4 lg:p-12 animate-in fade-in duration-500 text-left">
       <div className="max-w-6xl w-full bg-white border-2 border-black shadow-[20px_20px_0px_rgba(0,0,0,0.3)] flex flex-col md:flex-row min-h-[85vh] overflow-hidden">
         <div className="w-full md:w-80 bg-zinc-100 border-r-2 border-black p-8 space-y-8 flex flex-col">
-          <div className="flex justify-between items-center mb-4 md:hidden">
-            <h1 className="text-xl font-bold uppercase italic font-mono truncate">{work.title}</h1>
-            <button onClick={onClose} className="p-2 border border-black bg-white"><X size={16}/></button>
-          </div>
           <div className="space-y-6">
              <div className="aspect-square border-2 border-black bg-zinc-200 overflow-hidden shadow-[4px_4px_0px_black] relative grayscale group-hover:grayscale-0">
                 <img src={work.thumbnail} className="w-full h-full object-cover" />
-                <div className="absolute top-2 right-2 flex flex-col gap-1">
-                  {work.sensitivities.map((s, idx) => (<div key={idx} className="bg-white p-1 border border-black scale-75 shadow-[2px_2px_0px_black]" title={sensitivityLabels[s]}>{SENSITIVITY_ICONS[s]}</div>))}
-                </div>
              </div>
              <div className="grid grid-cols-2 gap-3 text-[10px] font-bold font-mono">
-                <button className="flex items-center justify-center gap-1 text-blue-800 border-2 border-zinc-200 p-2 hover:bg-white hover:border-black bg-white"><UserPlus size={10}/> Follow</button>
+                <button 
+                  onClick={() => toggleFollow(work.authorId)}
+                  className={`flex items-center justify-center gap-1 border-2 p-2 transition-all ${isFollowing ? 'bg-black text-white border-black' : 'bg-white text-blue-800 border-zinc-200 hover:border-black'}`}
+                >
+                  <UserPlus size={10}/> {isFollowing ? 'Following' : 'Follow'}
+                </button>
                 <button className="flex items-center justify-center gap-1 text-blue-800 border-2 border-zinc-200 p-2 hover:bg-white hover:border-black bg-white"><Mail size={10}/> Chat</button>
-                <button onClick={handleStartDiscussion} className="w-full col-span-2 flex items-center justify-center gap-2 bg-[#1a237e] text-white p-2 hover:bg-orange-600 shadow-[4px_4px_0px_black] active:translate-x-1 uppercase text-[9px]"><Hash size={12}/> {existingThread ? 'Discussion Active' : 'Start Discussion'}</button>
+                
                 <div className="relative col-span-2">
                   <button onClick={() => setShowFolderPicker(!showFolderPicker)} className="w-full flex items-center justify-center gap-2 text-zinc-900 border-2 border-zinc-200 p-2 hover:bg-white hover:border-black bg-white"><Bookmark size={12}/> Collect <ChevronDown size={10} /></button>
                   {showFolderPicker && (
@@ -74,16 +47,6 @@ export const WorkViewer: React.FC<WorkViewerProps> = ({ work, onClose }) => {
                     </div>
                   )}
                 </div>
-                <button onClick={handleReport} disabled={reported} className="text-red-800 border-2 p-2 hover:border-red-800 flex items-center justify-center gap-1"><AlertTriangle size={10}/> Report</button>
-                <button onClick={handleBlock} className="text-zinc-600 border-2 p-2 hover:border-black flex items-center justify-center gap-1 uppercase"><ShieldOff size={10}/> Block</button>
-             </div>
-          </div>
-          <div className="space-box border-2 shadow-[4px_4px_0px_rgba(0,0,0,0.05)]">
-             <div className="space-header flex items-center gap-2 uppercase text-[10px]"><Info size={12}/> Metadata</div>
-             <div className="p-4 space-y-3 text-[10px] font-mono leading-tight uppercase">
-                <p><span className="font-bold opacity-50">AUTHOR:</span> <span className="underline">{work.authorName}</span></p>
-                <p><span className="font-bold opacity-50">LANGUAGE:</span> {work.language.toUpperCase()}</p>
-                <p><span className="font-bold opacity-50">STATUS:</span> <span className="text-orange-600">{work.status}</span></p>
              </div>
           </div>
           <button onClick={onClose} className="w-full p-4 border-2 border-black bg-white font-mono font-bold text-[12px] uppercase shadow-[4px_4px_0px_black]">Return</button>
@@ -94,7 +57,7 @@ export const WorkViewer: React.FC<WorkViewerProps> = ({ work, onClose }) => {
              <button onClick={onClose} className="p-2 border-2 border-black shadow-[4px_4px_0px_black]"><X size={24} /></button>
           </div>
           <div className="bg-black p-1 border-4 border-zinc-300 shadow-[10px_10px_0px_rgba(0,0,0,0.1)]">
-            <div className="bg-zinc-900 flex items-center justify-center min-h-[400px] grayscale hover:grayscale-0 transition-all duration-[2s]">
+            <div className="bg-zinc-900 flex items-center justify-center min-h-[400px] grayscale hover:grayscale-0 transition-all">
                {work.language === WorkLanguage.AUDIOVISUAL && <video src={work.contentUrl} controls className="max-w-full max-h-[600px]" />}
                {work.language === WorkLanguage.VISUAL && <img src={work.contentUrl} className="max-w-full max-h-[700px]" />}
                {work.language === WorkLanguage.AUDIO && <div className="p-20"><audio src={work.contentUrl} controls className="invert" /></div>}

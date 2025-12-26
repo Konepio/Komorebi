@@ -41,8 +41,8 @@ export interface ProfileTheme {
 
 export interface User {
   id: string;
-  username: string; // Required for login
-  password?: string; // Required for login
+  username: string; 
+  password?: string; 
   email?: string;
   phone?: string;
   name: string;
@@ -52,6 +52,8 @@ export interface User {
   theme?: ProfileTheme;
   verifiedProgress: number; 
   blockedUserIds: string[];
+  followerIds: string[]; // Functional followers
+  followingIds: string[]; // Functional following
   reportCount: number;
 }
 

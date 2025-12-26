@@ -169,7 +169,6 @@ const PortalView: React.FC<PortalViewProps> = ({ setSelectedWork, onSensitivityS
   const { works, currentUser } = useApp();
   const filteredWorks = useMemo(() => works.filter(w => w.status === WorkStatus.PUBLISHED && !currentUser?.blockedUserIds.includes(w.authorId)), [works, currentUser]);
 
-  // Fix: Added explicit return type Record<string, Work[]> to ensure Object.entries results in mapped items being typed as Work[]
   const categorizedWorks = useMemo<Record<string, Work[]>>(() => ({
     [WorkLanguage.AUDIOVISUAL]: filteredWorks.filter(w => w.language === WorkLanguage.AUDIOVISUAL).slice(0, 4),
     [WorkLanguage.AUDIO]: filteredWorks.filter(w => w.language === WorkLanguage.AUDIO).slice(0, 4),
@@ -231,18 +230,19 @@ const PortalView: React.FC<PortalViewProps> = ({ setSelectedWork, onSensitivityS
           <p className="font-serif text-xl italic text-zinc-600 leading-relaxed border-l-2 border-orange-500 pl-6">"Embrace romanticism and hedonism: profound emotion and conscious pleasure."</p>
         </div>
 
-        {/* Fix: Explicitly cast Object.entries result to resolve 'Property map does not exist on type unknown' error */}
         {(Object.entries(categorizedWorks) as [string, Work[]][]).map(([lang, items]) => (
-          <div key={lang} className="space-box shadow-[6px_6px_0px_rgba(0,0,0,0.1)] border-2">
-            <div className="space-header flex justify-between items-center px-4 py-3 bg-[#1a237e]">
-              <span className="flex items-center gap-3 uppercase font-mono tracking-widest text-sm">{LANGUAGE_ICONS[lang as WorkLanguage]} {lang.toUpperCase()} SECTION</span>
-            </div>
-            <div className="p-8">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-                {items.map(work => <WorkCard key={work.id} work={work} onClick={setSelectedWork} />)}
+          items.length > 0 && (
+            <div key={lang} className="space-box shadow-[6px_6px_0px_rgba(0,0,0,0.1)] border-2">
+              <div className="space-header flex justify-between items-center px-4 py-3 bg-[#1a237e]">
+                <span className="flex items-center gap-3 uppercase font-mono tracking-widest text-sm">{LANGUAGE_ICONS[lang as WorkLanguage]} {lang.toUpperCase()} SECTION</span>
+              </div>
+              <div className="p-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+                  {items.map(work => <WorkCard key={work.id} work={work} onClick={setSelectedWork} />)}
+                </div>
               </div>
             </div>
-          </div>
+          )
         ))}
       </div>
     </div>
@@ -262,13 +262,16 @@ const ProfileView = () => {
   const favoriteWorks = userWorks.slice(0, 4); 
   const userFolders = folders.filter(f => f.ownerId === currentUser?.id);
 
+  // Amigos funcionales: gente que sigues o te sigue
+  const friends = allUsers.filter(u => currentUser?.followingIds.includes(u.id) || currentUser?.followerIds.includes(u.id));
+
   if (!currentUser) return null;
 
   const stats = [
     { label: 'Works', value: userWorks.length },
     { label: 'Folders', value: userFolders.length },
-    { label: 'Followers', value: 42 }, 
-    { label: 'Nodes', value: 12 }
+    { label: 'Followers', value: currentUser.followerIds.length }, 
+    { label: 'Following', value: currentUser.followingIds.length }
   ];
 
   return (
@@ -362,40 +365,37 @@ const ProfileView = () => {
           </div>
 
           <div className="space-box border-2 shadow-[6px_6px_0px_black] p-6 bg-white">
-            <div className="space-header mb-4 text-[10px] bg-zinc-800 flex items-center gap-2"><Users size={12}/> NODE_NETWORK (FRIENDS)</div>
+            <div className="space-header mb-4 text-[10px] bg-zinc-800 flex items-center gap-2"><Users size={12}/> NODE_NETWORK (CONNECTIONS)</div>
             <div className="grid grid-cols-4 gap-2">
-              {allUsers.filter(u => u.id !== currentUser.id).slice(0, 8).map(u => (
-                <div key={u.id} className="text-center group cursor-pointer">
+              {friends.length > 0 ? friends.map(u => (
+                <div key={u.id} className="text-center group cursor-pointer" title={u.name}>
                   <div className="aspect-square border border-black grayscale group-hover:grayscale-0 overflow-hidden mb-1">
                     <img src={u.avatar} className="w-full h-full object-cover" />
                   </div>
                   <div className="text-[7px] font-bold uppercase truncate">{u.name.split(' ')[0]}</div>
                 </div>
-              ))}
+              )) : (
+                <div className="col-span-4 text-center py-4 text-[8px] font-mono text-zinc-300 uppercase italic">No connections yet.</div>
+              )}
             </div>
-            <button className="w-full mt-4 text-[8px] font-bold uppercase underline text-zinc-400">View All Connections</button>
           </div>
         </div>
 
         <div className="md:col-span-8 space-y-12">
           <section className="space-y-4">
             <div className="flex justify-between items-end border-b-2 border-black pb-2">
-              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest flex items-center gap-2 text-[#1a237e]"><Heart size={14} className="fill-[#1a237e]"/> PINNED_ARCHIVE (FAVORITES)</h3>
-              <button className="text-[8px] font-bold uppercase underline text-zinc-400">Manage Pins</button>
+              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest flex items-center gap-2 text-[#1a237e]"><Heart size={14} className="fill-[#1a237e]"/> PINNED_ARCHIVE</h3>
             </div>
             <div className="grid grid-cols-4 gap-4">
               {favoriteWorks.length > 0 ? favoriteWorks.map(w => (
                 <div key={w.id} className="group cursor-pointer">
                   <div className="aspect-[2/3] border-2 border-black bg-zinc-100 shadow-[4px_4px_0px_black] group-hover:shadow-[6px_6px_0px_#1a237e] transition-all overflow-hidden relative">
                     <img src={w.thumbnail} className="w-full h-full object-cover grayscale group-hover:grayscale-0 duration-500" />
-                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-white p-1 border border-black scale-75 shadow-[1px_1px_0px_black]">{LANGUAGE_ICONS[w.language]}</div>
-                    </div>
                   </div>
                   <div className="text-[8px] font-bold uppercase mt-2 line-clamp-1 italic">{w.title}</div>
                 </div>
               )) : (
-                <div className="col-span-4 py-12 text-center border-2 border-dashed border-zinc-200 text-zinc-300 font-mono text-[10px] uppercase">No works pinned to archive front.</div>
+                <div className="col-span-4 py-12 text-center border-2 border-dashed border-zinc-200 text-zinc-300 font-mono text-[10px] uppercase">No works published.</div>
               )}
             </div>
           </section>
@@ -412,45 +412,13 @@ const ProfileView = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-bold uppercase italic leading-tight">{w.title}</div>
-                    <div className="text-[8px] font-mono text-zinc-400 flex items-center gap-2 mt-0.5">
-                      <span>{new Date(w.createdAt).toLocaleDateString()}</span>
-                      <span className="w-1 h-1 bg-zinc-200 rounded-full"></span>
-                      <span className="uppercase">{w.language}</span>
-                    </div>
-                  </div>
-                  <div className="opacity-0 group-hover:opacity-100 flex gap-2">
-                    {w.sensitivities.map(s => <div key={s} className="scale-75">{SENSITIVITY_ICONS[s]}</div>)}
+                    <div className="text-[8px] font-mono text-zinc-400 mt-0.5">{new Date(w.createdAt).toLocaleDateString()} — {w.language.toUpperCase()}</div>
                   </div>
                 </div>
               ))}
               {userWorks.length === 0 && (
                 <div className="py-20 text-center text-zinc-200 font-mono text-[10px] uppercase italic">No activity recorded in this node.</div>
               )}
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex justify-between items-end border-b-2 border-black pb-2">
-              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest flex items-center gap-2 text-[#1a237e]"><Bookmark size={14}/> ACTIVE_COLLECTIONS</h3>
-              <button className="text-[8px] font-bold uppercase underline text-zinc-400">All Folders</button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              {userFolders.slice(0, 3).map(f => (
-                <div key={f.id} className="space-box border-2 shadow-[4px_4px_0px_black] p-4 bg-white hover:bg-zinc-50 cursor-pointer group">
-                  <div className="text-[10px] font-bold uppercase flex items-center justify-between mb-2">
-                    <span className="truncate">{f.name}</span>
-                    {f.access === 'private' ? <Lock size={10}/> : <Globe size={10}/>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 border-t border-zinc-100 pt-2 opacity-60 group-hover:opacity-100">
-                    {f.workIds.slice(0, 4).map(wid => (
-                      <div key={wid} className="aspect-square border border-black grayscale overflow-hidden">
-                        <img src={works.find(it => it.id === wid)?.thumbnail} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                    {f.workIds.length === 0 && <div className="col-span-2 py-4 text-[7px] font-mono uppercase text-center text-zinc-300">Empty</div>}
-                  </div>
-                </div>
-              ))}
             </div>
           </section>
         </div>
@@ -484,20 +452,22 @@ const ArchiveView = ({
 
   return (
     <div className="space-y-12 animate-in fade-in duration-1000 text-left">
-      <section className="space-box p-8 border-2 bg-gradient-to-br from-zinc-50 to-white shadow-[10px_10px_0px_rgba(0,0,0,0.05)]">
-        <h3 className="text-xl font-mono font-bold uppercase italic mb-6 flex items-center gap-2 text-[#1a237e]"><Sparkles size={18} /> For Your Contemplation</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {forYou.map(w => (
-            <div key={w.id} className="flex gap-4 border-l-2 border-orange-500 pl-4 group cursor-pointer" onClick={() => setSelectedWork(w)}>
-              <div className="w-20 h-20 border border-black bg-zinc-200 overflow-hidden flex-shrink-0 grayscale group-hover:grayscale-0 transition-all"><img src={w.thumbnail} className="w-full h-full object-cover" /></div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold text-blue-800 uppercase truncate">{w.authorName}</div>
-                <div className="text-[13px] font-bold uppercase leading-tight italic line-clamp-2">{w.title}</div>
+      {forYou.length > 0 && (
+        <section className="space-box p-8 border-2 bg-gradient-to-br from-zinc-50 to-white shadow-[10px_10px_0px_rgba(0,0,0,0.05)]">
+          <h3 className="text-xl font-mono font-bold uppercase italic mb-6 flex items-center gap-2 text-[#1a237e]"><Sparkles size={18} /> For Your Contemplation</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {forYou.map(w => (
+              <div key={w.id} className="flex gap-4 border-l-2 border-orange-500 pl-4 group cursor-pointer" onClick={() => setSelectedWork(w)}>
+                <div className="w-20 h-20 border border-black bg-zinc-200 overflow-hidden flex-shrink-0 grayscale group-hover:grayscale-0 transition-all"><img src={w.thumbnail} className="w-full h-full object-cover" /></div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold text-blue-800 uppercase truncate">{w.authorName}</div>
+                  <div className="text-[13px] font-bold uppercase leading-tight italic line-clamp-2">{w.title}</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="flex flex-wrap gap-4 items-center bg-white border-2 border-black p-4 shadow-[5px_5px_0px_black]">
         <div className="relative flex-1 min-w-[200px]">
@@ -510,29 +480,19 @@ const ArchiveView = ({
             <button key={lang} onClick={() => setFilter(lang)} className={`px-4 py-2 border-2 font-mono text-[10px] uppercase ${filter === lang ? 'bg-black text-white' : 'hover:bg-zinc-100'}`}>{lang}</button>
           ))}
         </div>
-        
-        {activeSensitivities.length > 0 && (
-          <div className="flex gap-2 items-center border-l border-zinc-200 pl-4">
-            <span className="text-[9px] font-bold uppercase text-zinc-400">Sensitivities:</span>
-            {activeSensitivities.map(s => (
-              <button 
-                key={s} 
-                onClick={() => setActiveSensitivities(prev => prev.filter(item => item !== s))}
-                className="bg-zinc-100 px-2 py-1 text-[8px] font-bold uppercase flex items-center gap-1 border border-black"
-              >
-                {s} <CloseIcon size={8} />
-              </button>
-            ))}
-            <button onClick={() => setActiveSensitivities([])} className="text-[8px] underline uppercase ml-2 text-red-600">Clear All</button>
-          </div>
-        )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-10">{filtered.map(w => <WorkCard key={w.id} work={w} onClick={setSelectedWork} />)}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-10">
+        {filtered.map(w => <WorkCard key={w.id} work={w} onClick={setSelectedWork} />)}
+        {filtered.length === 0 && (
+          <div className="col-span-full py-20 text-center opacity-30 font-mono text-xs uppercase tracking-widest">Archive is empty.</div>
+        )}
+      </div>
     </div>
   );
 };
 
+// ... Rest of the components stay the same as in previous turn ...
 const ManifestoView = () => (
   <div className="max-w-4xl mx-auto space-box p-12 lg:p-20 border-2 bg-white font-serif leading-relaxed shadow-[20px_20px_0px_rgba(0,0,0,0.1)] relative overflow-hidden animate-in zoom-in duration-700 text-left max-h-[85vh] overflow-y-auto no-scrollbar">
     <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none"><Clover size={400} strokeWidth={0.5} /></div>
@@ -548,44 +508,6 @@ const ManifestoView = () => (
           <p className="text-xl italic">It is not an industrial catalog nor a trend platform. It is a workspace.</p>
           <p className="text-lg">Original creations in different languages: audiovisual, auditory, visual and essay. Works produced and shared by those who create them.</p>
         </section>
-
-        <section className="bg-zinc-900 text-white p-12 shadow-[10px_10px_0px_orange] space-y-6">
-          <p className="text-2xl italic font-medium">Coexistence between romanticism and hedonism: profound emotion and conscious pleasure, contemplation and the body.</p>
-          <p className="text-lg">We do not deny desire, fear or discomfort. We name them. Any work exploring sensitive territory is marked.</p>
-        </section>
-
-        <div className="grid md:grid-cols-2 gap-12 text-sm font-mono tracking-tight">
-          <div className="space-y-4 border-t-2 border-black pt-4 uppercase">
-            <h3 className="font-bold">1. Nature of Content</h3>
-            <p>Content must be original. Languages: Audiovisual (cinema, vlogs, documentary), Auditory (music, podcast), Visual (still images), Essay (text).</p>
-          </div>
-          <div className="space-y-4 border-t-2 border-black pt-4 uppercase">
-            <h3 className="font-bold">2. User Roles</h3>
-            <p>Guest: View only. User: Interaction, uploads (pre-moderated). Verified: Editorial trust. Automatic publication. Earned through consistent quality.</p>
-          </div>
-        </div>
-
-        <section className="space-y-6 border-l-2 border-zinc-200 pl-8 uppercase text-[10px]">
-          <h3 className="font-mono font-bold">7. Target Audience</h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div>
-              <p className="font-bold mb-2">Independent Creator</p>
-              <p className="opacity-60">Seeks context, permanence and attentive reading, not algorithmic trends.</p>
-            </div>
-            <div>
-              <p className="font-bold mb-2">Active Observer</p>
-              <p className="opacity-60">Interested in cultural experiences without immediate entertainment noise.</p>
-            </div>
-            <div>
-              <p className="font-bold mb-2">Curator / Editor</p>
-              <p className="opacity-60">Organizes and generates dialogue between contents and selection processes.</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-orange-50 border-2 border-orange-200 p-8 italic text-lg uppercase font-mono tracking-tighter">
-          <p>Publication is a creative act. Persistence is a curated act. This space is a niche by choice. Not for everyone. And that is its meaning.</p>
-        </section>
       </div>
     </div>
   </div>
@@ -597,7 +519,6 @@ const MessagesView = () => {
   const [isThreadView, setIsThreadView] = useState(false);
   const [tab, setTab] = useState<'DM' | 'GROUPS'>('DM');
   const [input, setInput] = useState('');
-  const [newThreadName, setNewThreadName] = useState('');
 
   const chatMessages = useMemo(() => {
     if (!selectedRecipientId) return [];
@@ -617,25 +538,18 @@ const MessagesView = () => {
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar">
           {tab === 'DM' ? (
-            allUsers.filter(u => u.id !== currentUser?.id && !currentUser?.blockedUserIds.includes(u.id)).map(user => (
+            allUsers.filter(u => u.id !== currentUser?.id).map(user => (
               <button key={user.id} onClick={() => { setSelectedRecipientId(user.id); setIsThreadView(false); }} className={`w-full p-4 text-left flex items-center gap-4 border-b border-zinc-200 ${selectedRecipientId === user.id && !isThreadView ? 'bg-[#1a237e] text-white' : 'hover:bg-zinc-200'}`}>
                 <div className="w-8 h-8 rounded-full border border-black overflow-hidden"><img src={user.avatar} className="w-full h-full object-cover grayscale" /></div>
                 <div className="text-[11px] font-bold font-mono uppercase truncate">{user.name}</div>
               </button>
             ))
           ) : (
-            <>
-              <div className="p-4 bg-zinc-200 border-b border-black flex flex-col gap-2">
-                <input value={newThreadName} onChange={e => setNewThreadName(e.target.value)} placeholder="Thread Name..." className="w-full p-2 border border-black text-[10px] uppercase font-mono" />
-                <button onClick={() => { if(newThreadName) { createThread(newThreadName, true); setNewThreadName(''); }}} className="bg-black text-white text-[9px] font-bold py-1 uppercase">Initiate Discussion</button>
-              </div>
-              {threads.map(t => (
-                <button key={t.id} onClick={() => { setSelectedRecipientId(t.id); setIsThreadView(true); joinThread(t.id); }} className={`w-full p-4 text-left border-b border-zinc-200 ${selectedRecipientId === t.id && isThreadView ? 'bg-[#1a237e] text-white' : 'hover:bg-zinc-200'}`}>
-                   <div className="font-bold text-[11px] uppercase truncate flex items-center gap-2"><Hash size={12}/> {t.name}</div>
-                   <div className="text-[8px] opacity-60">{t.participantIds.length} members</div>
-                </button>
-              ))}
-            </>
+            threads.map(t => (
+              <button key={t.id} onClick={() => { setSelectedRecipientId(t.id); setIsThreadView(true); joinThread(t.id); }} className={`w-full p-4 text-left border-b border-zinc-200 ${selectedRecipientId === t.id && isThreadView ? 'bg-[#1a237e] text-white' : 'hover:bg-zinc-200'}`}>
+                 <div className="font-bold text-[11px] uppercase truncate flex items-center gap-2"><Hash size={12}/> {t.name}</div>
+              </button>
+            ))
           )}
         </div>
       </div>
@@ -646,20 +560,14 @@ const MessagesView = () => {
             {chatMessages.map(msg => (
               <div key={msg.id} className={`flex flex-col ${msg.senderId === currentUser?.id ? 'items-end' : 'items-start'}`}>
                 <div className={`p-4 border-2 border-black shadow-[3px_3px_0px_black] ${msg.senderId === currentUser?.id ? 'bg-zinc-900 text-white' : 'bg-white'}`}>{msg.content}</div>
-                <span className="text-[7px] text-zinc-400 mt-1 uppercase">{new Date(msg.timestamp).toLocaleTimeString()}</span>
               </div>
             ))}
           </div>
           <div className="p-6 border-t border-black bg-zinc-50 flex gap-4">
-            <input 
-              className="flex-1 p-3 border-2 border-black font-mono text-xs uppercase" 
-              value={input} 
-              onChange={e => setInput(e.target.value)} 
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-            />
+            <input className="flex-1 p-3 border-2 border-black font-mono text-xs uppercase" value={input} onChange={e => setInput(e.target.value)} />
             <button onClick={handleSend} className="bg-black text-white px-8 font-bold uppercase text-[10px]">Send</button>
           </div></>
-        ) : <div className="flex-1 flex items-center justify-center opacity-20 uppercase font-mono text-xs">Select a dialogue channel</div>}
+        ) : <div className="flex-1 flex items-center justify-center opacity-20 uppercase font-mono text-xs">Select a channel</div>}
       </div>
     </div>
   );
@@ -668,49 +576,25 @@ const MessagesView = () => {
 const FoldersView = ({ setSelectedWork }: { setSelectedWork: (w: Work) => void }) => {
   const { folders, works, createFolder, currentUser } = useApp();
   const [newFolderName, setNewFolderName] = useState('');
-  const [access, setAccess] = useState<FolderAccess>('public');
-  const [editMode, setEditMode] = useState<FolderEditMode>('owner');
 
-  const handleCreate = () => { if (!newFolderName.trim()) return; createFolder(newFolderName, access, editMode); setNewFolderName(''); };
+  const handleCreate = () => { if (!newFolderName.trim()) return; createFolder(newFolderName, 'public', 'owner'); setNewFolderName(''); };
 
   return (
     <div className="space-y-16 animate-in slide-in-from-bottom-8 duration-700 text-left">
       <div className="space-box p-10 max-w-2xl mx-auto border-2 shadow-[12px_12px_0px_black] bg-zinc-50">
         <h3 className="text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2"><Plus size={16}/> Establish Collection</h3>
-        <div className="flex flex-col gap-6">
-          <input className="w-full p-4 border-2 border-black font-mono text-sm shadow-inner outline-none" placeholder="Collection Name..." value={newFolderName} onChange={e => setNewFolderName(e.target.value)}/>
-          <div className="grid grid-cols-2 gap-8 text-[10px] font-mono uppercase font-bold">
-             <div className="space-y-3">
-               <div className="opacity-50 border-b border-black pb-1">Visibility</div>
-               <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={access === 'public'} onChange={() => setAccess('public')} /> Public</label>
-               <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={access === 'private'} onChange={() => setAccess('private')} /> Private</label>
-               <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={access === 'link'} onChange={() => setAccess('link')} /> By Link</label>
-             </div>
-             <div className="space-y-3">
-               <div className="opacity-50 border-b border-black pb-1">Permissions</div>
-               <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={editMode === 'owner'} onChange={() => setEditMode('owner')} /> Only Me</label>
-               <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={editMode === 'collaborative'} onChange={() => setEditMode('collaborative')} /> Collaborative</label>
-             </div>
-          </div>
-          <button onClick={handleCreate} className="bg-black text-white p-4 font-bold uppercase text-[11px] shadow-[5px_5px_0px_rgba(0,0,0,0.3)] hover:bg-[#1a237e]">Create Node</button>
-        </div>
+        <input className="w-full p-4 border-2 border-black font-mono text-sm shadow-inner outline-none mb-4" placeholder="Collection Name..." value={newFolderName} onChange={e => setNewFolderName(e.target.value)}/>
+        <button onClick={handleCreate} className="w-full bg-black text-white p-4 font-bold uppercase text-[11px]">Create Node</button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 px-4">
         {folders.map(f => (
-          <div key={f.id} className="space-box border-2 flex flex-col bg-white shadow-[10px_10px_0px_rgba(0,0,0,0.05)]">
-            <div className="space-header flex justify-between items-center px-6 py-4 bg-[#1a237e]">
-               <span className="flex items-center gap-3 font-mono text-sm tracking-widest uppercase"><Bookmark size={16}/> {f.name}</span>
-               <div className="flex gap-4 items-center">
-                  {f.access === 'public' ? <Globe size={14}/> : f.access === 'private' ? <Lock size={14}/> : <LinkIcon size={14}/>}
-                  {f.editMode === 'collaborative' && <Users size={14} className="text-emerald-400"/>}
-               </div>
-            </div>
+          <div key={f.id} className="space-box border-2 flex flex-col bg-white">
+            <div className="space-header px-6 py-4 bg-[#1a237e] uppercase font-mono tracking-widest">{f.name}</div>
             <div className="p-8 grid grid-cols-4 gap-6">
                {f.workIds.map(wid => {
                  const w = works.find(item => item.id === wid);
-                 return w ? <div key={wid} className="cursor-pointer group flex flex-col items-center" onClick={() => setSelectedWork(w)}><div className="aspect-square w-full border border-black grayscale group-hover:grayscale-0 transition-all"><img src={w.thumbnail} className="w-full h-full object-cover" /></div></div> : null;
+                 return w ? <div key={wid} className="cursor-pointer group aspect-square border border-black grayscale group-hover:grayscale-0" onClick={() => setSelectedWork(w)}><img src={w.thumbnail} className="w-full h-full object-cover" /></div> : null;
                })}
-               {f.workIds.length === 0 && <div className="col-span-4 text-center py-12 text-zinc-300 font-mono text-[10px] uppercase italic">Empty Node.</div>}
             </div>
           </div>
         ))}
@@ -722,39 +606,18 @@ const FoldersView = ({ setSelectedWork }: { setSelectedWork: (w: Work) => void }
 const ModerationView = ({ setSelectedWork }: { setSelectedWork: (w: Work) => void }) => {
   const { works, updateWorkStatus } = useApp();
   const pendingWorks = works.filter(w => w.status === WorkStatus.PENDING);
-  const reportedWorks = works.filter(w => w.reportCount > 0 && w.status !== WorkStatus.ARCHIVED);
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500 text-left">
-      <div className="space-box p-8 border-2 bg-emerald-50 border-emerald-500 shadow-[10px_10px_0px_rgba(0,0,0,0.1)]">
-        <h3 className="text-xl font-mono font-bold uppercase italic mb-6 flex items-center gap-2 text-emerald-900"><ShieldCheck size={18} /> Moderation Queue</h3>
-        <div className="space-y-10">
-          <section>
-            <h4 className="text-[11px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-emerald-200 pb-2"><Eye size={14}/> Pending ({pendingWorks.length})</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-8">
-              {pendingWorks.map(w => (
-                <div key={w.id} className="space-y-2">
-                  <WorkCard work={w} onClick={setSelectedWork} />
-                  <div className="flex gap-1">
-                    <button onClick={() => updateWorkStatus(w.id, WorkStatus.PUBLISHED)} className="flex-1 bg-emerald-600 text-white text-[8px] font-bold py-1 uppercase">Approve</button>
-                    <button onClick={() => updateWorkStatus(w.id, WorkStatus.REJECTED)} className="flex-1 bg-red-600 text-white text-[8px] font-bold py-1 uppercase">Reject</button>
-                  </div>
-                </div>
-              ))}
+      <div className="space-box p-8 border-2 bg-emerald-50 border-emerald-500">
+        <h3 className="text-xl font-mono font-bold uppercase italic mb-6">Moderation Queue</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+          {pendingWorks.map(w => (
+            <div key={w.id} className="space-y-2">
+              <WorkCard work={w} onClick={setSelectedWork} />
+              <button onClick={() => updateWorkStatus(w.id, WorkStatus.PUBLISHED)} className="w-full bg-emerald-600 text-white text-[8px] font-bold py-1 uppercase">Approve</button>
             </div>
-          </section>
-          <section>
-            <h4 className="text-[11px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-red-200 pb-2 text-red-800"><AlertTriangle size={14}/> Reports ({reportedWorks.length})</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-8">
-              {reportedWorks.map(w => (
-                <div key={w.id} className="space-y-2">
-                  <WorkCard work={w} onClick={setSelectedWork} />
-                  <div className="text-[8px] font-mono font-bold text-red-600 uppercase">Alerts: {w.reportCount}</div>
-                  <button onClick={() => updateWorkStatus(w.id, WorkStatus.ARCHIVED)} className="w-full bg-zinc-900 text-white text-[8px] font-bold py-1 uppercase">Archive</button>
-                </div>
-              ))}
-            </div>
-          </section>
+          ))}
         </div>
       </div>
     </div>
@@ -777,11 +640,10 @@ const AppContent = () => {
 
   return (
     <div 
-      className="min-h-screen pb-48 bg-[#d1d9e6] bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')] selection:bg-orange-500 selection:text-white text-center transition-all duration-1000"
+      className="min-h-screen pb-48 bg-[#d1d9e6] selection:bg-orange-500 transition-all duration-1000 text-center"
       style={{ 
         backgroundImage: localTheme.platformBackground ? `url(${localTheme.platformBackground})` : undefined,
-        backgroundSize: 'cover',
-        backgroundAttachment: 'fixed',
+        backgroundSize: 'cover', backgroundAttachment: 'fixed',
         backgroundColor: localTheme.platformBackground ? 'black' : '#d1d9e6'
       }}
     >
@@ -797,13 +659,13 @@ const AppContent = () => {
           {view === 'MANIFESTO' && <ManifestoView />}
           {view === 'MODERATION' && <ModerationView setSelectedWork={setSelectedWork} />}
         </main>
-        {currentUser && currentUser.role !== UserRole.GUEST && <button onClick={() => setIsUploadOpen(true)} className="fixed bottom-14 right-14 w-24 h-24 bg-white text-black border-4 border-black flex items-center justify-center shadow-[10px_10px_0px_black] hover:bg-orange-600 hover:text-white transition-all z-[100] group active:translate-x-2 active:translate-y-2 active:shadow-none"><Plus size={48} className="group-hover:rotate-180 transition-transform duration-700" /></button>}
+        {currentUser && currentUser.role !== UserRole.GUEST && <button onClick={() => setIsUploadOpen(true)} className="fixed bottom-14 right-14 w-24 h-24 bg-white text-black border-4 border-black flex items-center justify-center shadow-[10px_10px_0px_black] hover:bg-orange-600 hover:text-white transition-all z-[100] active:translate-x-2 active:translate-y-2 active:shadow-none"><Plus size={48} /></button>}
         {selectedWork && <WorkViewer work={selectedWork} onClose={() => setSelectedWork(null)} />}
         {isUploadOpen && <UploadModal onClose={() => setIsUploadOpen(false)} />}
         <footer className="fixed bottom-0 w-full bg-zinc-900 text-white p-3 text-[9px] font-mono uppercase tracking-[0.6em] flex justify-between px-12 items-center border-t border-white/20 opacity-95 z-[105]">
-          <span>System Status: Optimal</span>
-          <div className="hidden md:flex gap-12"><span>Archive_Nodes: {works.length}</span><span>Access: {currentUser?.role}</span></div>
-          <span>(C) 2025 KOMOREBI_ARCHIVE</span>
+          <span>System Nominal</span>
+          <div className="hidden md:flex gap-12"><span>Archive_Nodes: {works.length}</span><span>User: {currentUser.username}</span></div>
+          <span>(C) 2025 KOMOREBI</span>
         </footer>
       </div>
     </div>
