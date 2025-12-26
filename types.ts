@@ -9,24 +9,24 @@ export enum UserRole {
 
 export enum WorkLanguage {
   AUDIOVISUAL = 'audiovisual',
-  AUDIO = 'auditory',
+  AUDIO = 'auditivo',
   VISUAL = 'visual',
-  ESSAY = 'essay'
+  ESSAY = 'ensayo'
 }
 
 export enum Sensitivity {
-  FEAR = 'fear',
-  VIOLENCE = 'violence',
-  SEXUALITY = 'sexuality',
-  PSYCHOLOGICAL = 'psychological',
-  EXCESS = 'excess'
+  FEAR = 'miedo',
+  VIOLENCE = 'violencia',
+  SEXUALITY = 'sexualidad',
+  PSYCHOLOGICAL = 'perturbación psicológica',
+  EXCESS = 'consumo o exceso'
 }
 
 export enum WorkStatus {
-  PENDING = 'pending',
-  PUBLISHED = 'published',
-  REJECTED = 'rejected',
-  ARCHIVED = 'archived'
+  PENDING = 'en revisión',
+  PUBLISHED = 'publicado',
+  REJECTED = 'rechazado',
+  ARCHIVED = 'archivado'
 }
 
 export interface ProfileTheme {
@@ -41,8 +41,8 @@ export interface ProfileTheme {
 
 export interface User {
   id: string;
-  username: string; 
-  password?: string; 
+  username: string; // Required for login
+  password?: string; // Required for login
   email?: string;
   phone?: string;
   name: string;

@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Work, UserRole, WorkStatus, Message, Folder, ChatThread, FolderAccess, FolderEditMode, GlobalTheme } from './types';
+import { INITIAL_WORKS } from './constants';
 
 interface AppContextType {
   currentUser: User | null;
@@ -11,6 +12,7 @@ interface AppContextType {
   allUsers: User[];
   localTheme: GlobalTheme;
   login: (username: string, password?: string) => boolean;
+  loginAsGuest: () => void;
   register: (userData: Partial<User>) => void;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
@@ -30,65 +32,56 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const KEY_PREFIX = 'komorebi_v3_restore'; // New key to ensure fresh start
-const KEY_USERS = `${KEY_PREFIX}_users`;
-const KEY_WORKS = `${KEY_PREFIX}_works`;
-const KEY_MESSAGES = `${KEY_PREFIX}_messages`;
-const KEY_FOLDERS = `${KEY_PREFIX}_folders`;
-const KEY_THREADS = `${KEY_PREFIX}_threads`;
-const KEY_THEME = `${KEY_PREFIX}_theme`;
-const KEY_CURRENT = `${KEY_PREFIX}_current`;
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [allUsers, setAllUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem(KEY_USERS);
+    const saved = localStorage.getItem('komorebi_all_users');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem(KEY_CURRENT);
+    const saved = localStorage.getItem('komorebi_current_user');
     return saved ? JSON.parse(saved) : null;
   });
 
   const [localTheme, setLocalTheme] = useState<GlobalTheme>(() => {
-    const saved = localStorage.getItem(KEY_THEME);
+    const saved = localStorage.getItem('komorebi_local_theme');
     return saved ? JSON.parse(saved) : { platformBackground: '', platformOpacity: 1 };
   });
 
   const [works, setWorks] = useState<Work[]>(() => {
-    const saved = localStorage.getItem(KEY_WORKS);
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('komorebi_works');
+    return saved ? JSON.parse(saved) : (INITIAL_WORKS.map(w => ({ ...w, reportCount: 0 })) as Work[]);
   });
 
   const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = localStorage.getItem(KEY_MESSAGES);
+    const saved = localStorage.getItem('komorebi_messages');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [threads, setThreads] = useState<ChatThread[]>(() => {
-    const saved = localStorage.getItem(KEY_THREADS);
+    const saved = localStorage.getItem('komorebi_threads');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [folders, setFolders] = useState<Folder[]>(() => {
-    const saved = localStorage.getItem(KEY_FOLDERS);
+    const saved = localStorage.getItem('komorebi_folders');
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem(KEY_USERS, JSON.stringify(allUsers));
-    localStorage.setItem(KEY_WORKS, JSON.stringify(works));
-    localStorage.setItem(KEY_MESSAGES, JSON.stringify(messages));
-    localStorage.setItem(KEY_FOLDERS, JSON.stringify(folders));
-    localStorage.setItem(KEY_THREADS, JSON.stringify(threads));
-    localStorage.setItem(KEY_THEME, JSON.stringify(localTheme));
+    localStorage.setItem('komorebi_all_users', JSON.stringify(allUsers));
+    localStorage.setItem('komorebi_works', JSON.stringify(works));
+    localStorage.setItem('komorebi_messages', JSON.stringify(messages));
+    localStorage.setItem('komorebi_folders', JSON.stringify(folders));
+    localStorage.setItem('komorebi_threads', JSON.stringify(threads));
+    localStorage.setItem('komorebi_local_theme', JSON.stringify(localTheme));
   }, [allUsers, works, messages, folders, threads, localTheme]);
 
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(KEY_CURRENT, JSON.stringify(currentUser));
+    if (currentUser && currentUser.role !== UserRole.GUEST) {
+      localStorage.setItem('komorebi_current_user', JSON.stringify(currentUser));
     } else {
-      localStorage.removeItem(KEY_CURRENT);
+      localStorage.removeItem('komorebi_current_user');
     }
   }, [currentUser]);
 
@@ -101,6 +94,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
+  const loginAsGuest = () => {
+    setCurrentUser({
+      id: 'guest',
+      username: 'guest',
+      name: 'Guest Explorer',
+      role: UserRole.GUEST,
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest',
+      bio: 'Just browsing the intentional archive.',
+      verifiedProgress: 0,
+      blockedUserIds: [],
+      followerIds: [],
+      followingIds: [],
+      reportCount: 0,
+    });
+  };
+
   const register = (userData: Partial<User>) => {
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
@@ -109,7 +118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: userData.name || '',
       email: userData.email,
       phone: userData.phone,
-      role: allUsers.length === 0 ? UserRole.ADMIN : UserRole.USER, 
+      role: UserRole.USER,
       avatar: userData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.username}`,
       bio: '',
       verifiedProgress: 0,
@@ -117,8 +126,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       followerIds: [],
       followingIds: [],
       reportCount: 0,
-      theme: { backgroundColor: '#ffffff', headerColor: '#1a237e', borderStyle: 'solid' }
+      theme: { backgroundColor: '#ffffff', headerColor: '#1a237e' }
     };
+
+    // Special ADMIN grant for @Konepio_
+    if (newUser.username === 'Konepio_' || newUser.username === '@Konepio_') {
+      newUser.role = UserRole.ADMIN;
+    } else if (allUsers.length === 0) {
+      newUser.role = UserRole.ADMIN;
+    }
+
     setAllUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);
   };
@@ -126,37 +143,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = () => setCurrentUser(null);
   
   const updateProfile = (updates: Partial<User>) => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role === UserRole.GUEST) return;
     const updated = { ...currentUser, ...updates };
     setCurrentUser(updated);
     setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updated : u));
   };
 
-  const updateLocalTheme = (theme: GlobalTheme) => setLocalTheme(theme);
-
-  const addWork = (workData: Omit<Work, 'id' | 'createdAt' | 'status' | 'reportCount'>) => {
-    if (!currentUser) return;
-    const newWork: Work = {
-      ...workData,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: Date.now(),
-      status: (currentUser.role === UserRole.VERIFIED || currentUser.role === UserRole.ADMIN) ? WorkStatus.PUBLISHED : WorkStatus.PENDING,
-      reportCount: 0
-    };
-    setWorks(prev => [newWork, ...prev]);
-  };
-
-  const updateWorkStatus = (workId: string, status: WorkStatus) => {
-    setWorks(prev => prev.map(w => (w.id === workId) ? { ...w, status } : w));
-  };
-
   const toggleFollow = (targetId: string) => {
-    if (!currentUser || currentUser.id === targetId) return;
-    const isFollowing = currentUser.followingIds.includes(targetId);
+    if (!currentUser || currentUser.role === UserRole.GUEST || currentUser.id === targetId) return;
+    const isFollowing = (currentUser.followingIds || []).includes(targetId);
     
     const updatedFollowing = isFollowing 
       ? currentUser.followingIds.filter(id => id !== targetId)
-      : [...currentUser.followingIds, targetId];
+      : [...(currentUser.followingIds || []), targetId];
 
     const updatedCurrentUser = { ...currentUser, followingIds: updatedFollowing };
     setCurrentUser(updatedCurrentUser);
@@ -165,11 +164,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (u.id === currentUser.id) return updatedCurrentUser;
       if (u.id === targetId) {
         const updatedFollowers = isFollowing
-          ? u.followerIds.filter(id => id !== currentUser.id)
-          : [...u.followerIds, currentUser.id];
+          ? (u.followerIds || []).filter(id => id !== currentUser.id)
+          : [...(u.followerIds || []), currentUser.id];
         return { ...u, followerIds: updatedFollowers };
       }
       return u;
+    }));
+  };
+
+  const updateLocalTheme = (theme: GlobalTheme) => setLocalTheme(theme);
+
+  const addWork = (workData: Omit<Work, 'id' | 'createdAt' | 'status' | 'reportCount'>) => {
+    if (!currentUser || currentUser.role === UserRole.GUEST) return;
+    const newWork: Work = {
+      ...workData,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: Date.now(),
+      status: currentUser.role === UserRole.VERIFIED || currentUser.role === UserRole.ADMIN ? WorkStatus.PUBLISHED : WorkStatus.PENDING,
+      reportCount: 0
+    };
+    setWorks(prev => [newWork, ...prev]);
+  };
+
+  const updateWorkStatus = (workId: string, status: WorkStatus) => {
+    setWorks(prev => prev.map(w => {
+      if (w.id === workId) {
+        if (status === WorkStatus.PUBLISHED && w.status !== WorkStatus.PUBLISHED) {
+           const author = allUsers.find(u => u.id === w.authorId);
+           if (author) {
+             const newProgress = author.verifiedProgress + 1;
+             const newRole = newProgress >= 3 && author.role === UserRole.USER ? UserRole.VERIFIED : author.role;
+             
+             // Update in allUsers
+             setAllUsers(prevUsers => prevUsers.map(u => 
+               u.id === author.id ? { ...u, verifiedProgress: newProgress, role: newRole } : u
+             ));
+             
+             // Update current user if they are the author
+             if (currentUser?.id === author.id) {
+                setCurrentUser(prev => prev ? { ...prev, verifiedProgress: newProgress, role: newRole } : null);
+             }
+           }
+        }
+        return { ...w, status };
+      }
+      return w;
     }));
   };
 
@@ -185,29 +224,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const blockUser = (userId: string) => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role === UserRole.GUEST) return;
     updateProfile({ blockedUserIds: [...currentUser.blockedUserIds, userId] });
   };
 
   const sendMessage = (receiverId: string, content: string, isThread: boolean = false) => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role === UserRole.GUEST) return;
     const msg: Message = { id: Math.random().toString(36).substr(2, 9), senderId: currentUser.id, receiverId, content, timestamp: Date.now(), isThreadMessage: isThread };
     setMessages(prev => [...prev, msg]);
   };
 
   const createThread = (name: string, isPublic: boolean, workId?: string) => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role === UserRole.GUEST) return;
     const newThread: ChatThread = { id: Math.random().toString(36).substr(2, 9), name, creatorId: currentUser.id, isPublic, workId, participantIds: [currentUser.id], createdAt: Date.now() };
     setThreads(prev => [...prev, newThread]);
   };
 
   const joinThread = (threadId: string) => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role === UserRole.GUEST) return;
     setThreads(prev => prev.map(t => (t.id === threadId && !t.participantIds.includes(currentUser.id)) ? { ...t, participantIds: [...t.participantIds, currentUser.id] } : t));
   };
 
   const createFolder = (name: string, access: FolderAccess, editMode: FolderEditMode) => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role === UserRole.GUEST) return;
     const folder: Folder = { id: Math.random().toString(36).substr(2, 9), name, ownerId: currentUser.id, workIds: [], access, editMode };
     setFolders(prev => [...prev, folder]);
   };
@@ -227,7 +266,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider value={{
       currentUser, works, messages, folders, threads, allUsers, localTheme,
-      login, register, logout, updateProfile, updateLocalTheme, addWork, updateWorkStatus, reportWork, blockUser, toggleFollow, sendMessage, createThread, joinThread, createFolder, updateFolderSettings, toggleWorkInFolder
+      login, loginAsGuest, register, logout, updateProfile, updateLocalTheme, addWork, updateWorkStatus, reportWork, blockUser, toggleFollow, sendMessage, createThread, joinThread, createFolder, updateFolderSettings, toggleWorkInFolder
     }}>
       {children}
     </AppContext.Provider>

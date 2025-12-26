@@ -2,6 +2,7 @@
 import React from 'react';
 import { 
   Ghost, 
+  Zap, 
   Heart, 
   Brain, 
   Wine, 
@@ -10,6 +11,7 @@ import {
   Image as ImageIcon, 
   FileText,
   Clover,
+  Eye,
   Activity
 } from 'lucide-react';
 import { Sensitivity, WorkLanguage } from './types';
@@ -35,4 +37,5 @@ export const LANGUAGE_ICONS: Record<WorkLanguage, React.ReactNode> = {
   [WorkLanguage.ESSAY]: <FileText size={16} strokeWidth={1} />,
 };
 
+// Se vacía la lista inicial para eliminar a los "bots" y permitir que solo existan usuarios reales registrados.
 export const INITIAL_WORKS: any[] = [];
