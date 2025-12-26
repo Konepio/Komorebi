@@ -169,7 +169,8 @@ const PortalView: React.FC<PortalViewProps> = ({ setSelectedWork, onSensitivityS
   const { works, currentUser } = useApp();
   const filteredWorks = useMemo(() => works.filter(w => w.status === WorkStatus.PUBLISHED && !currentUser?.blockedUserIds.includes(w.authorId)), [works, currentUser]);
 
-  const categorizedWorks = useMemo(() => ({
+  // Fix: Added explicit return type Record<string, Work[]> to ensure Object.entries results in mapped items being typed as Work[]
+  const categorizedWorks = useMemo<Record<string, Work[]>>(() => ({
     [WorkLanguage.AUDIOVISUAL]: filteredWorks.filter(w => w.language === WorkLanguage.AUDIOVISUAL).slice(0, 4),
     [WorkLanguage.AUDIO]: filteredWorks.filter(w => w.language === WorkLanguage.AUDIO).slice(0, 4),
     [WorkLanguage.VISUAL]: filteredWorks.filter(w => w.language === WorkLanguage.VISUAL).slice(0, 4),
@@ -230,7 +231,8 @@ const PortalView: React.FC<PortalViewProps> = ({ setSelectedWork, onSensitivityS
           <p className="font-serif text-xl italic text-zinc-600 leading-relaxed border-l-2 border-orange-500 pl-6">"Embrace romanticism and hedonism: profound emotion and conscious pleasure."</p>
         </div>
 
-        {Object.entries(categorizedWorks).map(([lang, items]) => (
+        {/* Fix: Explicitly cast Object.entries result to resolve 'Property map does not exist on type unknown' error */}
+        {(Object.entries(categorizedWorks) as [string, Work[]][]).map(([lang, items]) => (
           <div key={lang} className="space-box shadow-[6px_6px_0px_rgba(0,0,0,0.1)] border-2">
             <div className="space-header flex justify-between items-center px-4 py-3 bg-[#1a237e]">
               <span className="flex items-center gap-3 uppercase font-mono tracking-widest text-sm">{LANGUAGE_ICONS[lang as WorkLanguage]} {lang.toUpperCase()} SECTION</span>

@@ -30,16 +30,13 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const INITIAL_USERS: User[] = [
-  { id: 'admin1', username: 'thom', password: '123', name: 'Thom Yorke', role: UserRole.ADMIN, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thom', bio: 'Archive Guardian.', verifiedProgress: 10, blockedUserIds: [], reportCount: 0 },
-  { id: 'verif1', username: 'elena', password: '123', name: 'Elena Valera', role: UserRole.VERIFIED, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena', bio: 'Editorial trustworthy node.', verifiedProgress: 5, blockedUserIds: [], reportCount: 0 },
-  { id: 'user1', username: 'creator', password: '123', name: 'Regular Creator', role: UserRole.USER, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Regular', bio: 'Subject to pre-moderation.', verifiedProgress: 0, blockedUserIds: [], reportCount: 0 }
-];
+// Removed INITIAL_USERS to eliminate "bots" as requested.
+// The database is now purely driven by user registration and localStorage.
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('komorebi_all_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -64,16 +61,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [threads, setThreads] = useState<ChatThread[]>(() => {
     const saved = localStorage.getItem('komorebi_threads');
-    return saved ? JSON.parse(saved) : [
-      { id: 't1', name: 'Global Aesthetics', creatorId: 'admin1', isPublic: true, participantIds: ['admin1', 'verif1'], createdAt: Date.now() }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [folders, setFolders] = useState<Folder[]>(() => {
     const saved = localStorage.getItem('komorebi_folders');
-    return saved ? JSON.parse(saved) : [
-      { id: 'f1', name: 'Core Archive', ownerId: 'admin1', workIds: ['1', '2'], access: 'public', editMode: 'owner' }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
@@ -86,8 +79,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [allUsers, works, messages, folders, threads, localTheme]);
 
   useEffect(() => {
-    if (currentUser) localStorage.setItem('komorebi_current_user', JSON.stringify(currentUser));
-    else localStorage.removeItem('komorebi_current_user');
+    if (currentUser) {
+      localStorage.setItem('komorebi_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('komorebi_current_user');
+    }
   }, [currentUser]);
 
   const login = (username: string, password?: string) => {
@@ -107,7 +103,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: userData.name || '',
       email: userData.email,
       phone: userData.phone,
-      role: UserRole.USER,
+      role: UserRole.USER, // First user should be USER. 
       avatar: userData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.username}`,
       bio: '',
       verifiedProgress: 0,
@@ -115,6 +111,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       reportCount: 0,
       theme: { backgroundColor: '#ffffff', headerColor: '#1a237e' }
     };
+
+    // If it's the very first user, promote to ADMIN so they can moderate
+    if (allUsers.length === 0) {
+      newUser.role = UserRole.ADMIN;
+    }
+
     setAllUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);
   };

@@ -37,31 +37,5 @@ export const LANGUAGE_ICONS: Record<WorkLanguage, React.ReactNode> = {
   [WorkLanguage.ESSAY]: <FileText size={16} strokeWidth={1} />,
 };
 
-export const INITIAL_WORKS = [
-  {
-    id: '1',
-    authorId: 'user1',
-    authorName: 'Elena V.',
-    title: 'Idioteque / Sombras',
-    language: WorkLanguage.AUDIOVISUAL,
-    contentUrl: 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4',
-    intent: 'Everything in its right place. A study of static and the human form.',
-    sensitivities: [Sensitivity.PSYCHOLOGICAL],
-    status: 'publicado',
-    createdAt: Date.now() - 1000000,
-    thumbnail: 'https://images.unsplash.com/photo-1514467950401-43b2a9e00406?q=80&w=800&auto=format&fit=crop'
-  },
-  {
-    id: '2',
-    authorId: 'user2',
-    authorName: 'Thom R.',
-    title: 'Crystalline Structures',
-    language: WorkLanguage.VISUAL,
-    contentUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop',
-    intent: 'The distance between the observer and the observed. Monochromatic decay.',
-    sensitivities: [],
-    status: 'publicado',
-    createdAt: Date.now() - 5000000,
-    thumbnail: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?q=80&w=800&auto=format&fit=crop'
-  }
-];
+// Se vacía la lista inicial para eliminar a los "bots" y permitir que solo existan usuarios reales registrados.
+export const INITIAL_WORKS: any[] = [];
