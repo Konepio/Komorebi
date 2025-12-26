@@ -22,8 +22,6 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, onClick }) => {
           src={work.thumbnail || `https://picsum.photos/seed/${work.id}/400/400`} 
           className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0 duration-700" 
         />
-        
-        {/* Languages & Sensitivity Overlay */}
         <div className="absolute top-1 right-1 flex flex-col gap-1">
            <div className="bg-white p-1 border border-black scale-75 shadow-[1px_1px_0px_black]">
               {LANGUAGE_ICONS[work.language]}
@@ -34,7 +32,6 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, onClick }) => {
              </div>
            ))}
         </div>
-
         {work.status === WorkStatus.PENDING && (
           <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center">
              <span className="bg-black text-white text-[7px] px-1 py-0.5 uppercase tracking-widest font-mono">UNDER REVIEW</span>

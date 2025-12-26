@@ -9,24 +9,24 @@ export enum UserRole {
 
 export enum WorkLanguage {
   AUDIOVISUAL = 'audiovisual',
-  AUDIO = 'auditivo',
+  AUDIO = 'auditory',
   VISUAL = 'visual',
-  ESSAY = 'ensayo'
+  ESSAY = 'essay'
 }
 
 export enum Sensitivity {
-  FEAR = 'miedo',
-  VIOLENCE = 'violencia',
-  SEXUALITY = 'sexualidad',
-  PSYCHOLOGICAL = 'perturbación psicológica',
-  EXCESS = 'consumo o exceso'
+  FEAR = 'fear',
+  VIOLENCE = 'violence',
+  SEXUALITY = 'sexuality',
+  PSYCHOLOGICAL = 'psychological',
+  EXCESS = 'excess'
 }
 
 export enum WorkStatus {
-  PENDING = 'en revisión',
-  PUBLISHED = 'publicado',
-  REJECTED = 'rechazado',
-  ARCHIVED = 'archivado'
+  PENDING = 'pending',
+  PUBLISHED = 'published',
+  REJECTED = 'rejected',
+  ARCHIVED = 'archived'
 }
 
 export interface ProfileTheme {
@@ -52,8 +52,8 @@ export interface User {
   theme?: ProfileTheme;
   verifiedProgress: number; 
   blockedUserIds: string[];
-  followerIds: string[]; // Functional followers
-  followingIds: string[]; // Functional following
+  followerIds: string[];
+  followingIds: string[];
   reportCount: number;
 }
 

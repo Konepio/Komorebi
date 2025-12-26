@@ -30,8 +30,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Nuevas claves para limpiar cualquier dato residual anterior
-const KEY_PREFIX = 'komorebi_final_v1';
+const KEY_PREFIX = 'komorebi_v3_restore'; // New key to ensure fresh start
 const KEY_USERS = `${KEY_PREFIX}_users`;
 const KEY_WORKS = `${KEY_PREFIX}_works`;
 const KEY_MESSAGES = `${KEY_PREFIX}_messages`;
@@ -118,7 +117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       followerIds: [],
       followingIds: [],
       reportCount: 0,
-      theme: { backgroundColor: '#ffffff', headerColor: '#1a237e' }
+      theme: { backgroundColor: '#ffffff', headerColor: '#1a237e', borderStyle: 'solid' }
     };
     setAllUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);

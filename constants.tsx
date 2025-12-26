@@ -35,5 +35,4 @@ export const LANGUAGE_ICONS: Record<WorkLanguage, React.ReactNode> = {
   [WorkLanguage.ESSAY]: <FileText size={16} strokeWidth={1} />,
 };
 
-// Base de datos de obras inicial vacía para evitar bots
 export const INITIAL_WORKS: any[] = [];
